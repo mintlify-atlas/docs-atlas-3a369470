@@ -1,0 +1,99 @@
+---
+title: "Create domain mapping"
+description: "Create a new domain-to-backend mapping"
+---
+
+Adds a new routing rule that tells the proxy where to forward requests for a given domain.
+
+## Authentication
+
+All requests require an `Authorization: Bearer <PROXY_API_KEY>` header and must originate from the `PROXY_API_DOMAIN` host. See [Authentication](/api-reference/authentication) for details.
+
+## Request
+
+**POST** `/api/config`
+
+<ParamField body="domain" type="string" required>
+  The domain name to route. Incoming requests with a matching `Host` header are forwarded to the configured backend.
+</ParamField>
+
+<ParamField body="ip" type="string" required>
+  The backend IP address to forward traffic to.
+</ParamField>
+
+<ParamField body="port" type="number" required>
+  The backend port number.
+</ParamField>
+
+<ParamField body="protocol" type="string" default="http">
+  The protocol used to reach the backend. Accepted values: `http`, `https`. Defaults to `http` if omitted.
+</ParamField>
+
+## Response
+
+Returns `201 Created` with the newly created domain object.
+
+<ResponseField name="domain" type="string" required>
+  The domain name for this mapping.
+</ResponseField>
+
+<ResponseField name="ip" type="string" required>
+  The backend IP address.
+</ResponseField>
+
+<ResponseField name="port" type="number" required>
+  The backend port number.
+</ResponseField>
+
+<ResponseField name="protocol" type="string" required>
+  The protocol used to reach the backend.
+</ResponseField>
+
+<ResponseField name="created_at" type="string" required>
+  ISO 8601 timestamp of when the mapping was created.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string" required>
+  ISO 8601 timestamp of the most recent update. Equal to `created_at` on creation.
+</ResponseField>
+
+## Examples
+
+**HTTP backend:**
+
+```bash
+curl -X POST http://api.example.com/api/config \
+  -H "Authorization: Bearer your-secret-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"domain":"example.com","ip":"192.168.1.100","port":8080,"protocol":"http"}'
+```
+
+**HTTPS backend:**
+
+```bash
+curl -X POST http://api.example.com/api/config \
+  -H "Authorization: Bearer your-secret-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"domain":"secure.example.com","ip":"10.0.0.5","port":443,"protocol":"https"}'
+```
+
+**Response:**
+
+```json
+{
+  "domain": "example.com",
+  "ip": "192.168.1.100",
+  "port": 8080,
+  "protocol": "http",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
+```
+
+## Error responses
+
+| Status | Cause |
+|--------|-------|
+| `400 Bad Request` | Request body is not valid JSON. |
+| `400 Bad Request` | One or more required fields (`domain`, `ip`, `port`) are missing. |
+| `500 Internal Server Error` | Database error — for example, a mapping for this domain already exists. |

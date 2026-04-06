@@ -1,97 +1,88 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Simple Proxy"
+description: "A lightweight HTTP reverse proxy that routes requests by domain name to configured backends, with a REST API for dynamic configuration management."
 ---
 
-## Setting up
+Simple Proxy is a Go-based HTTP reverse proxy that inspects the `Host` header of incoming requests and forwards them to the correct backend server. Domain-to-backend mappings are stored in SQLite and can be created, updated, or deleted at runtime through a REST API — no restarts required.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get Simple Proxy running in minutes with a working domain mapping
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore the full REST API for managing domain mappings
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Docker Deployment" icon="docker" href="/deployment/docker">
+    Run Simple Proxy as a container with persistent configuration
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Configuration" icon="sliders" href="/configuration/environment-variables">
+    Learn about all environment variables and configuration options
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## How it works
 
-Everything you need to create world-class documentation.
+Simple Proxy listens on a single port and routes every incoming HTTP request based on the `Host` header value:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+1. A request arrives at the proxy
+2. The proxy looks up the `Host` header value in its SQLite database
+3. If a mapping exists, the request is forwarded to the configured `ip:port` using the specified protocol
+4. If no mapping exists, the proxy returns a `404 Not Found` response
 
-## Need inspiration?
+All domain mappings are managed through a protected REST API, so you can add or remove routes without restarting the proxy.
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Domain-based routing" icon="route">
+    Routes requests using the HTTP `Host` header with no additional configuration required on the client
+  </Card>
+  <Card title="Dynamic configuration" icon="bolt">
+    Add, update, or delete domain mappings at runtime via REST API — changes take effect immediately
+  </Card>
+  <Card title="HTTP and HTTPS backends" icon="lock">
+    Forward requests to backends using either `http` or `https` protocol
+  </Card>
+  <Card title="Bulk operations" icon="layer-group">
+    Import multiple domain mappings in a single API call using the bulk create endpoint
+  </Card>
+</CardGroup>
+
+## Getting started
+
+<Steps>
+  <Step title="Set required environment variables">
+    Export your API key and the domain from which the management API will be accessed:
+
+    ```bash
+    export PROXY_API_KEY=your-secret-api-key
+    export PROXY_API_DOMAIN=api.example.com
+    ```
+  </Step>
+  <Step title="Start the proxy">
+    Run Simple Proxy using Go or Docker:
+
+    ```bash
+    go run main.go
+    ```
+  </Step>
+  <Step title="Create your first domain mapping">
+    Use the REST API to route a domain to a backend server:
+
+    ```bash
+    curl -X POST http://api.example.com/api/config \
+      -H "Authorization: Bearer your-secret-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"domain":"example.com","ip":"192.168.1.100","port":8080,"protocol":"http"}'
+    ```
+  </Step>
+  <Step title="Test the proxy">
+    Send a request using the mapped domain:
+
+    ```bash
+    curl -H "Host: example.com" http://localhost/
+    ```
+
+    The proxy forwards this request to `http://192.168.1.100:8080/`.
+  </Step>
+</Steps>

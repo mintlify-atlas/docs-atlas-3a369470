@@ -1,0 +1,67 @@
+---
+title: "API overview"
+description: "Overview of the Simple Proxy management REST API"
+---
+
+## Base URL
+
+The management API is accessible only through the domain specified in `PROXY_API_DOMAIN`. For example, if `PROXY_API_DOMAIN=api.example.com`, all API calls must use:
+
+```
+http://api.example.com
+```
+
+This is enforced by the domain restriction middleware. Any request whose `Host` header does not match `PROXY_API_DOMAIN` is immediately rejected with a `403 Forbidden` response — regardless of the path or credentials provided.
+
+## Authentication
+
+All endpoints under `/api/*` require Bearer token authentication. See [Authentication](/api-reference/authentication) for details.
+
+<Note>
+  `/health` and `/whoami` do **not** require authentication and are accessible from any domain — they are registered on the root router, outside of the API subrouter and its middleware chain.
+</Note>
+
+## Available endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/config` | List all domain mappings |
+| `GET` | `/api/config/:domain` | Get a specific domain mapping |
+| `POST` | `/api/config` | Create a domain mapping |
+| `PUT` | `/api/config/:domain` | Update a domain mapping |
+| `DELETE` | `/api/config/:domain` | Delete a domain mapping |
+| `POST` | `/api/config/bulk` | Bulk create domain mappings |
+| `GET` | `/health` | Health check (no auth) |
+| `GET` | `/whoami` | Request diagnostic info (no auth) |
+
+## Response format
+
+All API endpoints return JSON. The `Content-Type` header is always `application/json`. Errors are returned as plain text with the appropriate HTTP status code.
+
+## HTTP status codes
+
+| Code | Meaning |
+|---|---|
+| `200 OK` | Successful read operation |
+| `201 Created` | Successful create operation |
+| `204 No Content` | Successful delete operation |
+| `400 Bad Request` | Invalid request body or missing required fields |
+| `401 Unauthorized` | Missing or invalid API key |
+| `403 Forbidden` | Request came from wrong domain |
+| `404 Not Found` | Domain mapping not found |
+| `500 Internal Server Error` | Database or server error |
+
+<CardGroup cols={2}>
+  <Card title="Domain mappings" icon="globe" href="/api-reference/domains/list">
+    Create, read, update, and delete proxy routing rules.
+  </Card>
+  <Card title="Authentication" icon="lock" href="/api-reference/authentication">
+    Learn how to authenticate requests with your API key.
+  </Card>
+  <Card title="Health check" icon="heart-pulse" href="/api-reference/health">
+    Verify the proxy is running and reachable.
+  </Card>
+  <Card title="Whoami" icon="circle-info" href="/api-reference/whoami">
+    Inspect request diagnostic information.
+  </Card>
+</CardGroup>

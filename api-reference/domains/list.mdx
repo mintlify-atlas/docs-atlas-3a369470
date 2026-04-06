@@ -1,0 +1,72 @@
+---
+title: "List domain mappings"
+description: "Retrieve all configured domain mappings"
+---
+
+Returns an array of all domain-to-backend mappings currently configured in the proxy.
+
+## Authentication
+
+All requests require an `Authorization: Bearer <PROXY_API_KEY>` header and must originate from the `PROXY_API_DOMAIN` host. See [Authentication](/api-reference/authentication) for details.
+
+## Request
+
+**GET** `/api/config`
+
+No request parameters.
+
+## Response
+
+An array of domain objects. Returns an empty array `[]` if no domains are configured.
+
+<ResponseField name="domain" type="string" required>
+  The domain name used to match incoming requests (e.g., `example.com`).
+</ResponseField>
+
+<ResponseField name="ip" type="string" required>
+  The backend IP address traffic is forwarded to.
+</ResponseField>
+
+<ResponseField name="port" type="number" required>
+  The backend port number.
+</ResponseField>
+
+<ResponseField name="protocol" type="string" required>
+  The protocol used to reach the backend. Either `http` or `https`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string" required>
+  ISO 8601 timestamp of when the mapping was created.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string" required>
+  ISO 8601 timestamp of the most recent update to this mapping.
+</ResponseField>
+
+## Example
+
+```bash
+curl http://api.example.com/api/config \
+  -H "Authorization: Bearer your-secret-api-key"
+```
+
+```json
+[
+  {
+    "domain": "example.com",
+    "ip": "192.168.1.100",
+    "port": 8080,
+    "protocol": "http",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z"
+  },
+  {
+    "domain": "api.example.com",
+    "ip": "192.168.1.101",
+    "port": 3000,
+    "protocol": "http",
+    "created_at": "2024-01-02T00:00:00Z",
+    "updated_at": "2024-01-02T00:00:00Z"
+  }
+]
+```

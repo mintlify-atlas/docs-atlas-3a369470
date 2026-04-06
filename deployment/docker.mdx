@@ -1,0 +1,92 @@
+---
+title: "Docker"
+description: "Run Simple Proxy as a Docker container"
+---
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed and running
+
+## Build the image
+
+From the root of the repository, build the Docker image:
+
+```bash
+docker build -t simple-proxy .
+```
+
+### Multi-stage build
+
+The Dockerfile uses two stages to keep the runtime image small:
+
+| Stage   | Base image          | Purpose                                      |
+| ------- | ------------------- | -------------------------------------------- |
+| builder | `golang:1.21-alpine`| Compiles the binary with CGO disabled        |
+| runtime | `alpine:latest`     | Runs the compiled binary; no Go toolchain needed |
+
+<Note>
+  The runtime container runs as a non-root user (`proxy`, group `proxy`). This limits the blast radius if the process is ever compromised and follows the principle of least privilege.
+</Note>
+
+## Run the container
+
+```bash
+docker run -d \
+  --name proxy \
+  -p 80:80 \
+  -e PROXY_API_KEY=your-secret-api-key \
+  -e PROXY_API_DOMAIN=api.example.com \
+  -e DB_PATH=/app/data/proxy.db \
+  -e PORT=80 \
+  -e DEBUG=false \
+  -v $(pwd)/data:/app/data \
+  simple-proxy
+```
+
+### Environment variables
+
+| Variable           | Required | Default         | Description                                      |
+| ------------------ | -------- | --------------- | ------------------------------------------------ |
+| `PROXY_API_KEY`    | Yes      | —               | API key for authenticating management requests   |
+| `PROXY_API_DOMAIN` | Yes      | —               | Domain from which API endpoints must be accessed |
+| `DB_PATH`          | No       | `/app/data/proxy.db` | Path to the SQLite database file inside the container |
+| `PORT`             | No       | `80`            | Port the server listens on                       |
+| `DEBUG`            | No       | `false`         | Enable verbose debug logging                     |
+
+### Volume mount
+
+The flag `-v $(pwd)/data:/app/data` mounts a local `data/` directory into the container at `/app/data`, where the SQLite database is stored.
+
+<Warning>
+  Without this volume mount, the SQLite database exists only inside the container's writable layer. All domain mappings are permanently lost when the container is removed.
+</Warning>
+
+### Exposed port
+
+The Dockerfile declares `EXPOSE 80`. The `-p 80:80` flag maps the host's port 80 to the container's port 80. Change both sides if you set `PORT` to something other than `80`.
+
+## Check health status
+
+```bash
+docker ps  # shows the container's health status in the STATUS column
+curl http://localhost/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+## View logs
+
+```bash
+docker logs -f proxy
+```
+
+## Stop and remove the container
+
+```bash
+docker stop proxy
+docker rm proxy
+```

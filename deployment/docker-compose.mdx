@@ -1,0 +1,110 @@
+---
+title: "Docker Compose"
+description: "Deploy Simple Proxy using Docker Compose with persistent configuration"
+---
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+
+## Configure environment variables
+
+Create a `.env` file in the root of the repository. Docker Compose reads this file automatically and substitutes the values into `docker-compose.yml`.
+
+```bash
+PROXY_API_KEY=your-secret-api-key-change-me
+PROXY_API_DOMAIN=api.example.com
+DB_PATH=/app/data/proxy.db
+PORT=80
+```
+
+<Tip>
+  Change `PROXY_API_KEY` from the default value before deploying. Any client that knows the key can manage all domain mappings through the API.
+</Tip>
+
+## docker-compose.yml
+
+```yaml
+version: "3.8"
+
+services:
+    proxy:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: proxy
+        ports:
+            - "${PORT:-80}:${PORT:-80}"
+        environment:
+            - PROXY_API_KEY=${PROXY_API_KEY:-your-secret-api-key-change-me}
+            - PROXY_API_DOMAIN=${PROXY_API_DOMAIN}
+            - DB_PATH=${DB_PATH:-/app/data/proxy.db}
+            - PORT=${PORT:-80}
+        volumes:
+            # Persist database across container restarts
+            - ./data:/app/data
+        restart: unless-stopped
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "wget --no-verbose --tries=1 --spider http://localhost:$${PORT:-80}/health || exit 1",
+                ]
+            interval: 30s
+            timeout: 3s
+            retries: 3
+            start_period: 5s
+```
+
+<Warning>
+  `PROXY_API_DOMAIN` is required but not included in the default `docker-compose.yml`. Add it to the `environment` section (as shown above) and set it in your `.env` file before starting the service. Without it, the proxy will exit on startup.
+</Warning>
+
+<Note>
+  Docker Compose uses `${VARIABLE:-default}` syntax for environment variable substitution with fallback defaults. For example, `${PORT:-80}` reads `PORT` from the environment or `.env` file, and falls back to `80` if it is not set. This means the Compose file works out of the box without a `.env` file, while still allowing overrides.
+</Note>
+
+### Health check
+
+The `healthcheck` block configures Docker to poll the `/health` endpoint using `wget`:
+
+| Field          | Value  | Description                                             |
+| -------------- | ------ | ------------------------------------------------------- |
+| `interval`     | 30s    | Time between each health check                          |
+| `timeout`      | 3s     | Maximum time to wait for a response before failing      |
+| `retries`      | 3      | Consecutive failures before the container is marked unhealthy |
+| `start_period` | 5s     | Grace period after startup before failures are counted  |
+
+### Volume
+
+The `./data:/app/data` volume mount persists the SQLite database in a local `data/` directory next to your `docker-compose.yml`. The database survives container restarts and re-creations as long as this directory is preserved.
+
+### Restart policy
+
+`restart: unless-stopped` instructs Docker to automatically restart the container if it exits — for example after a crash or a host reboot — unless you explicitly stop it with `docker-compose down` or `docker stop`.
+
+## Commands
+
+Build and start the service in detached mode:
+
+```bash
+docker-compose up -d
+```
+
+Follow logs:
+
+```bash
+docker-compose logs -f
+```
+
+Stop the service (data is preserved):
+
+```bash
+docker-compose down
+```
+
+Stop the service and remove the database volume:
+
+```bash
+docker-compose down -v
+```

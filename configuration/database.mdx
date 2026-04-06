@@ -1,0 +1,73 @@
+---
+title: "Database"
+description: "SQLite database schema and storage configuration for domain mappings"
+---
+
+Simple Proxy uses SQLite to persist domain-to-backend mappings across restarts. No external database server is required.
+
+<Note>
+  Simple Proxy uses the `modernc.org/sqlite` driver, which is a pure Go port of SQLite. No system SQLite library or CGO compilation is required — the binary is fully self-contained.
+</Note>
+
+### Storage
+
+- The database driver is `modernc.org/sqlite` (pure Go, no CGO required).
+- The database file path is configured via the `DB_PATH` environment variable and defaults to `data/proxy.db` relative to the working directory.
+- The database schema is initialized automatically on startup. No manual migration steps or seed scripts are needed.
+- The parent directory (e.g. `data/`) must exist before starting the proxy. Create it with `mkdir -p data` when running the binary directly.
+
+### Schema
+
+The following table is created on first startup if it does not already exist:
+
+```sql
+CREATE TABLE IF NOT EXISTS domains (
+    domain TEXT PRIMARY KEY NOT NULL,
+    ip TEXT NOT NULL,
+    port INTEGER NOT NULL DEFAULT 80,
+    protocol TEXT NOT NULL DEFAULT 'http',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+| Column | Type | Description |
+|---|---|---|
+| `domain` | TEXT PRIMARY KEY | The domain name matched against the incoming `Host` header (e.g., `example.com`) |
+| `ip` | TEXT | Backend IP address or hostname to forward requests to |
+| `port` | INTEGER | Backend port number (default: `80`) |
+| `protocol` | TEXT | Backend protocol used when forwarding: `http` or `https` (default: `http`) |
+| `created_at` | DATETIME | Timestamp when the mapping was first created |
+| `updated_at` | DATETIME | Timestamp when the mapping was last modified |
+
+### Persistence
+
+Domain mappings are written to the SQLite file immediately and survive proxy restarts automatically. No additional configuration is required.
+
+When running Simple Proxy inside Docker, mount a volume at the path matching `DB_PATH` to ensure data persists across container restarts or image upgrades:
+
+```bash
+docker run -d \
+  -e PROXY_API_KEY=your-secret-key \
+  -e PROXY_API_DOMAIN=api.example.com \
+  -e DB_PATH=/app/data/proxy.db \
+  -v $(pwd)/data:/app/data \
+  simple-proxy
+```
+
+The database file is created automatically if it does not exist, so the volume only needs to be mounted — no pre-seeding is required.
+
+### Backup
+
+Because the database is a single file, backing it up is straightforward.
+
+```bash
+# Copy database file directly
+cp data/proxy.db data/proxy.db.backup
+
+# Or with a Docker volume
+docker run --rm -v simple-proxy_data:/data -v $(pwd):/backup alpine \
+  cp /data/proxy.db /backup/proxy.db.backup
+```
+
+For production use, schedule regular backups of the database file and store copies off the host running Simple Proxy.

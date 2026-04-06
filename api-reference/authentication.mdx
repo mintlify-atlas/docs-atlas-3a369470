@@ -1,0 +1,68 @@
+---
+title: "Authentication"
+description: "How to authenticate requests to the Simple Proxy management API"
+---
+
+## Getting your API key
+
+The API key is configured when deploying Simple Proxy via the `PROXY_API_KEY` environment variable. Whoever deploys the proxy sets this key — there is no web UI or endpoint to retrieve it after deployment.
+
+## Making authenticated requests
+
+All requests to `/api/*` must include an `Authorization` header with a Bearer token:
+
+```
+Authorization: Bearer <your-api-key>
+```
+
+**Example — list all domain mappings:**
+
+```bash
+curl -X GET http://api.example.com/api/config \
+  -H "Authorization: Bearer your-secret-api-key"
+```
+
+**Examples with management operations:**
+
+```bash
+# Create a mapping
+curl -X POST http://api.example.com/api/config \
+  -H "Authorization: Bearer your-secret-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"domain":"example.com","ip":"10.0.0.1","port":8080}'
+
+# Delete a mapping
+curl -X DELETE http://api.example.com/api/config/example.com \
+  -H "Authorization: Bearer your-secret-api-key"
+```
+
+## Domain restriction
+
+The API is also restricted to be accessible only from the domain configured as `PROXY_API_DOMAIN`. If you send a request to the proxy's IP directly, or via another mapped domain, you will receive:
+
+```http
+HTTP/1.1 403 Forbidden
+Forbidden: API access restricted to specific domain
+```
+
+You must send requests using the correct `Host` value (or a DNS name that resolves to the proxy and matches `PROXY_API_DOMAIN`):
+
+```bash
+# Correct: using the configured API domain
+curl http://api.example.com/api/config \
+  -H "Authorization: Bearer your-secret-api-key"
+
+# Wrong: using IP directly or another domain
+curl http://192.168.1.1/api/config  # returns 403
+```
+
+## Error responses
+
+| HTTP status | Cause | Response body |
+|---|---|---|
+| `401 Unauthorized` | Missing or incorrect `Authorization` header | `Unauthorized` |
+| `403 Forbidden` | Request `Host` header doesn't match `PROXY_API_DOMAIN` | `Forbidden: API access restricted to specific domain` |
+
+<Warning>
+  Treat your API key like a password. Anyone who holds the key can create, update, and delete all proxy routing rules — giving them full control over where your traffic is forwarded.
+</Warning>

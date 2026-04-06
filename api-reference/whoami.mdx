@@ -1,0 +1,73 @@
+---
+title: "Whoami"
+description: "Diagnostic endpoint that returns request and server information"
+---
+
+**GET /whoami**
+
+The `/whoami` endpoint returns diagnostic information about the incoming request and the proxy server itself. It is useful for debugging — it shows the IP addresses the proxy sees, the container hostname, and the exact headers in the request.
+
+<Note>
+  This endpoint does not require authentication and is accessible from any Host header value. It is served directly by the proxy, not forwarded to a backend.
+</Note>
+
+## Query parameters
+
+<ParamField query="wait" type="string">
+  Wait for the specified duration before responding. Accepts Go duration strings such as `5s`, `100ms`, or `1m`. Useful for testing timeout behavior in upstream clients.
+</ParamField>
+
+<ParamField query="env" type="boolean">
+  Include all environment variables of the proxy process in the response. Set to `true` to enable.
+</ParamField>
+
+<Warning>
+  Using `?env=true` exposes all environment variables of the proxy process, including `PROXY_API_KEY`. Only use this in trusted, non-production environments.
+</Warning>
+
+## Examples
+
+**Basic request:**
+
+```bash
+curl http://localhost/whoami
+```
+
+**With wait (test upstream timeouts):**
+
+```bash
+curl "http://localhost/whoami?wait=5s"
+```
+
+**With environment variables:**
+
+```bash
+curl "http://localhost/whoami?env=true"
+```
+
+## Response
+
+The response is plain text. It includes the server hostname, all network interface IP addresses, the remote address of the caller, and the full HTTP request (method, path, headers).
+
+```text
+Custom Header
+Hostname: proxy-container-abc123
+IP: 172.17.0.2
+IP: 127.0.0.1
+RemoteAddr: 192.168.1.50:54321
+GET /whoami HTTP/1.1
+Host: localhost
+User-Agent: curl/7.88.1
+Accept: */*
+```
+
+If `?env=true` is passed, environment variable lines are appended at the end:
+
+```text
+...
+PROXY_API_KEY=your-secret-api-key
+PROXY_API_DOMAIN=api.example.com
+PORT=80
+DB_PATH=data/proxy.db
+DEBUG=false
+```

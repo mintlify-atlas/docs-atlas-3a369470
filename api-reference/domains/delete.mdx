@@ -1,0 +1,42 @@
+---
+title: "Delete domain mapping"
+description: "Remove a domain mapping from the proxy configuration"
+---
+
+Permanently removes a domain-to-backend mapping. After deletion, the proxy immediately stops forwarding requests for that domain.
+
+## Authentication
+
+All requests require an `Authorization: Bearer <PROXY_API_KEY>` header and must originate from the `PROXY_API_DOMAIN` host. See [Authentication](/api-reference/authentication) for details.
+
+## Request
+
+**DELETE** `/api/config/:domain`
+
+<ParamField path="domain" type="string" required>
+  The domain name to delete. URL-encode the value if it contains special characters.
+</ParamField>
+
+## Response
+
+Returns `204 No Content` with no response body on success.
+
+<Note>
+  After deletion, any request to the proxy with `Host: <domain>` immediately receives a `404 Domain not found` response. There is no grace period — the change takes effect as soon as the mapping is removed.
+</Note>
+
+## Example
+
+```bash
+curl -X DELETE http://api.example.com/api/config/example.com \
+  -H "Authorization: Bearer your-secret-api-key"
+```
+
+A successful response returns HTTP `204` with an empty body.
+
+## Error responses
+
+| Status | Cause |
+|--------|-------|
+| `400 Bad Request` | The `domain` path parameter could not be URL-decoded. |
+| `404 Not Found` | No mapping exists for the specified domain. |

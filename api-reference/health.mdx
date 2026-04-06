@@ -1,0 +1,55 @@
+---
+title: "Health check"
+description: "Check if Simple Proxy is running and healthy"
+---
+
+Returns a JSON object confirming the proxy process is running. Use this endpoint with load balancers, monitoring systems, or container orchestrators to verify the proxy is ready to serve traffic.
+
+## Request
+
+**GET** `/health`
+
+No authentication required. No request parameters. Accessible from any `Host` header value.
+
+## Response
+
+**200 OK**
+
+<ResponseField name="status" type="string" required>
+  Always `"ok"` when the proxy is running.
+</ResponseField>
+
+```json
+{"status":"ok"}
+```
+
+The response `Content-Type` is always `application/json`.
+
+## Example
+
+```bash
+curl http://localhost/health
+```
+
+```json
+{"status":"ok"}
+```
+
+## Docker health check
+
+Docker Compose uses this endpoint to determine container health. The following configuration is included in the Simple Proxy `docker-compose.yml`:
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${PORT:-80}/health || exit 1"]
+  interval: 30s
+  timeout: 3s
+  retries: 3
+  start_period: 5s
+```
+
+This causes Docker to mark the container as `healthy` once the proxy responds to `/health`, and `unhealthy` after three consecutive failures.
+
+<Note>
+  This endpoint bypasses proxy routing — it is handled directly by the proxy server and is never forwarded to a backend.
+</Note>

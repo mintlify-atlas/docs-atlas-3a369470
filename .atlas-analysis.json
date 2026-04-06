@@ -1,23 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Simple Proxy",
+  "projectType": "infrastructure",
+  "projectName": "Simple Proxy",
+  "projectDescription": "A lightweight Go-based HTTP reverse proxy that routes requests by domain name to configured backends, with a REST API for dynamic configuration management.",
   "theme": "aspen",
-  "colors": {
-    "primary": "#2563EB",
-    "light": "#3B82F6",
-    "dark": "#1D4ED8"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/ItsNoxius/simple-proxy"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/ItsNoxius/simple-proxy"
-    }
-  },
+  "primaryColor": "#2563EB",
+  "lightColor": "#3B82F6",
+  "darkColor": "#1D4ED8",
   "navigation": {
     "tabs": [
       {
@@ -78,5 +66,27 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Domain-based HTTP reverse proxy using Host header routing",
+    "SQLite-backed persistent configuration storage",
+    "REST API for dynamic domain mapping management",
+    "Bearer token API key authentication",
+    "Domain restriction middleware for API endpoint access",
+    "Support for HTTP and HTTPS backend protocols",
+    "Bulk domain creation endpoint for batch operations",
+    "Docker and Docker Compose support",
+    "Debug logging mode",
+    "Health check endpoint"
+  ],
+  "publicApiSurface": [
+    "GET /api/config — List all domain mappings",
+    "GET /api/config/:domain — Get a specific domain mapping",
+    "POST /api/config — Create a domain mapping",
+    "PUT /api/config/:domain — Update a domain mapping",
+    "DELETE /api/config/:domain — Delete a domain mapping",
+    "POST /api/config/bulk — Bulk create domain mappings",
+    "GET /health — Health check endpoint",
+    "GET /whoami — Diagnostic information endpoint"
+  ]
 }

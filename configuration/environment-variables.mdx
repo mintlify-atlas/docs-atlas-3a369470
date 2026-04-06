@@ -1,0 +1,87 @@
+---
+title: "Environment variables"
+description: "All environment variables used to configure Simple Proxy"
+---
+
+The following table lists every environment variable Simple Proxy reads at startup.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PROXY_API_KEY` | Yes | — | API key for management endpoint authentication |
+| `PROXY_API_DOMAIN` | Yes | — | Domain from which the API must be accessed |
+| `DB_PATH` | No | `data/proxy.db` | Path to the SQLite database file |
+| `PORT` | No | `80` | TCP port the proxy listens on |
+| `DEBUG` | No | `false` | Enable debug logging |
+
+<Warning>
+  Both `PROXY_API_KEY` and `PROXY_API_DOMAIN` are required. If either is missing, the server logs a fatal error and exits immediately without serving any traffic.
+</Warning>
+
+---
+
+<ParamField path="PROXY_API_KEY" type="string" required>
+  The API key used to authenticate requests to the management API. Passed as `Authorization: Bearer <PROXY_API_KEY>` header. The server will refuse to start if this is not set.
+</ParamField>
+
+<ParamField path="PROXY_API_DOMAIN" type="string" required>
+  The domain from which the management API must be accessed. Requests to `/api/*` routes are rejected unless the `Host` header matches this value. Port numbers in the `Host` header are stripped before comparison. The server will refuse to start if this is not set.
+</ParamField>
+
+<ParamField path="DB_PATH" type="string" default="data/proxy.db">
+  File system path to the SQLite database used to store domain mappings. The file and its parent directory are created automatically on first startup if they do not already exist.
+</ParamField>
+
+<ParamField path="PORT" type="integer" default="80">
+  The TCP port on which the proxy listens for incoming HTTP requests. Must be a valid port number between 1 and 65535. If the value cannot be parsed as an integer the default of `80` is used.
+</ParamField>
+
+<ParamField path="DEBUG" type="boolean" default="false">
+  When set to `true`, the proxy emits detailed `[DEBUG]` log lines for each request, configuration load, and internal operation. Accepts any value understood by Go's `strconv.ParseBool` (`true`, `1`, `t`, `false`, `0`, `f`, etc.).
+</ParamField>
+
+---
+
+### PROXY_API_DOMAIN
+
+Simple Proxy registers all management routes under the `/api` path prefix and protects them with a domain restriction middleware. On every request to `/api/*`, the middleware extracts the `Host` header value, strips any port number (e.g. `api.example.com:8080` becomes `api.example.com`), and compares the result to `PROXY_API_DOMAIN`.
+
+If the values do not match, the request is rejected before it reaches authentication or any route handler. This ensures the management API is only reachable through the intended domain and cannot be accessed through arbitrary domains that are being proxied by the same server.
+
+This is intentional: a single Simple Proxy instance may proxy many domains simultaneously, but only one of them — the one set in `PROXY_API_DOMAIN` — can reach the management API.
+
+---
+
+### Setting variables
+
+**Shell / terminal**
+
+```bash
+export PROXY_API_KEY=your-secret-key
+export PROXY_API_DOMAIN=api.example.com
+export PORT=8080
+export DB_PATH=/var/data/proxy.db
+export DEBUG=true
+```
+
+**Docker run**
+
+```bash
+docker run -d \
+  -e PROXY_API_KEY=your-secret-key \
+  -e PROXY_API_DOMAIN=api.example.com \
+  simple-proxy
+```
+
+**Docker Compose `.env` file**
+
+```bash
+PROXY_API_KEY=your-secret-key
+PROXY_API_DOMAIN=api.example.com
+DB_PATH=/app/data/proxy.db
+PORT=80
+DEBUG=false
+```
+
+<Tip>
+  Use a strong, randomly generated value for `PROXY_API_KEY`. A 32-byte random hex string (e.g. from `openssl rand -hex 32`) is a reasonable choice.
+</Tip>

@@ -1,0 +1,88 @@
+---
+title: "Introduction"
+description: "Learn what Simple Proxy is and how it works"
+---
+
+Simple Proxy is a Go-based HTTP reverse proxy that routes incoming requests to backend servers based on the `Host` header. Domain-to-backend mappings are stored in SQLite and managed at runtime through a protected REST API — no restarts required.
+
+## How routing works
+
+Every request that reaches Simple Proxy goes through the same three-step process:
+
+1. The proxy reads the `Host` header from the incoming HTTP request
+2. It looks up the domain name in its SQLite database to find the configured backend
+3. It forwards the request to the backend at the configured `ip:port` using the specified protocol (`http` or `https`)
+
+If no mapping exists for the requested domain, the proxy returns `404 Not Found`. The `Host` header is stripped of any port suffix before the lookup, so `example.com:8080` matches a mapping for `example.com`.
+
+<Note>
+  Simple Proxy does not terminate TLS. It forwards HTTP requests only. If your backends use HTTPS, you can set `protocol` to `https` in the domain mapping, and the proxy will connect to the backend over HTTPS — but the proxy itself always listens on a plain HTTP port.
+</Note>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Domain-based routing" icon="route" href="/configuration/database">
+    Routes every request using the HTTP `Host` header. No client-side configuration required.
+  </Card>
+  <Card title="Dynamic configuration via REST API" icon="bolt" href="/api-reference/overview">
+    Add, update, or delete domain mappings at runtime. Changes take effect immediately without a restart.
+  </Card>
+  <Card title="SQLite-backed persistent storage" icon="database" href="/configuration/database">
+    All domain mappings are stored in a SQLite database. Configuration survives restarts and container rebuilds when the database path is volume-mounted.
+  </Card>
+  <Card title="API key authentication" icon="key" href="/api-reference/authentication">
+    All management endpoints require a `Bearer` token. An additional domain restriction middleware ensures the API is only reachable from the configured `PROXY_API_DOMAIN`.
+  </Card>
+  <Card title="HTTP and HTTPS backend support" icon="lock" href="/api-reference/domains/create">
+    Forward requests to backends over either `http` or `https`. Set the `protocol` field when creating or updating a domain mapping.
+  </Card>
+  <Card title="Bulk domain creation" icon="layer-group" href="/api-reference/domains/bulk-create">
+    Import multiple domain mappings in a single API call. Accepts both an array of domain objects and an object with a `domains` field.
+  </Card>
+  <Card title="Docker support" icon="docker" href="/deployment/docker">
+    Official Docker image and Compose configuration included. Persist the database by mounting the data directory as a volume.
+  </Card>
+  <Card title="Health check endpoint" icon="heart-pulse" href="/api-reference/health">
+    `GET /health` returns `{"status":"ok"}` with no authentication required. Suitable for load balancer and container health probes.
+  </Card>
+</CardGroup>
+
+## Architecture overview
+
+Simple Proxy is a single Go binary that listens on one HTTP port (default `80`). Its internal structure is:
+
+- **gorilla/mux router** — dispatches requests to either the management API subrouter, the `/health` endpoint, the `/whoami` diagnostic handler, or the catch-all proxy handler
+- **API subrouter** — protected by two middleware layers: a domain restriction check (`PROXY_API_DOMAIN`) and bearer token authentication (`PROXY_API_KEY`)
+- **Proxy handler** — looks up the `Host` header in SQLite and uses `net/http/httputil.ReverseProxy` to forward the request, preserving the full path and query string
+- **SQLite backend** — uses `modernc.org/sqlite`, a pure-Go driver with no CGO dependency, so the binary compiles and runs without any native libraries
+
+The database schema is initialized automatically on startup. No migration tooling is required.
+
+## When to use Simple Proxy
+
+Simple Proxy is a good fit when you need:
+
+- A lightweight proxy to route HTTP traffic to multiple internal backends by domain name
+- Dynamic routing configuration without restarting the proxy
+- A minimal operational footprint — single binary, single port, embedded database
+
+It is **not** the right tool when you need:
+
+- TLS termination at the proxy layer
+- Load balancing across multiple backends for the same domain
+- Advanced traffic management (retries, circuit breaking, rate limiting)
+- HTTPS on the incoming listener
+
+For those use cases, consider Caddy, Traefik, or Nginx.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get Simple Proxy running with a working domain mapping in under 5 minutes.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/overview">
+    Explore the full REST API for managing domain mappings.
+  </Card>
+</CardGroup>

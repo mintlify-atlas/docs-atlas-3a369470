@@ -1,0 +1,101 @@
+---
+title: "Binary deployment"
+description: "Build and run Simple Proxy directly from source using Go"
+---
+
+## Prerequisites
+
+- Go 1.21 or later
+- No CGO required — Simple Proxy uses [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite), a pure Go SQLite driver
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/ItsNoxius/simple-proxy.git
+    cd simple-proxy
+    ```
+  </Step>
+
+  <Step title="Download dependencies">
+    ```bash
+    go mod download
+    ```
+  </Step>
+
+  <Step title="Set environment variables">
+    Two variables are required. The rest are optional.
+
+    ```bash
+    # Required
+    export PROXY_API_KEY=your-secret-api-key
+    export PROXY_API_DOMAIN=api.example.com
+
+    # Optional
+    export DB_PATH=data/proxy.db   # defaults to data/proxy.db
+    export PORT=80                  # defaults to 80
+    export DEBUG=false              # defaults to false
+    ```
+
+    | Variable          | Required | Default          | Description                                              |
+    | ----------------- | -------- | ---------------- | -------------------------------------------------------- |
+    | `PROXY_API_KEY`   | Yes      | —                | API key for authenticating management requests           |
+    | `PROXY_API_DOMAIN`| Yes      | —                | Domain from which API endpoints must be accessed         |
+    | `DB_PATH`         | No       | `data/proxy.db`  | Path to the SQLite database file                         |
+    | `PORT`            | No       | `80`             | Port the server listens on                               |
+    | `DEBUG`           | No       | `false`          | Enable verbose debug logging                             |
+  </Step>
+
+  <Step title="Create the data directory">
+    Simple Proxy stores domain mappings in a SQLite database. Create the directory before starting the server so the database file can be written.
+
+    ```bash
+    mkdir -p data
+    ```
+  </Step>
+
+  <Step title="Run with go run">
+    ```bash
+    go run main.go
+    ```
+  </Step>
+
+  <Step title="Or build a binary and run it">
+    For development or quick testing:
+
+    ```bash
+    go build -o proxy ./main.go
+    ./proxy
+    ```
+
+    For a production-optimised binary that matches the Dockerfile build (stripped debug info, statically linked):
+
+    ```bash
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+      -ldflags='-w -s' \
+      -o proxy \
+      ./main.go
+    ```
+
+    Then run it:
+
+    ```bash
+    ./proxy
+    ```
+  </Step>
+</Steps>
+
+## Verify the server is running
+
+Once started, confirm the server is healthy:
+
+```bash
+curl http://localhost/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
